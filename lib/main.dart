@@ -89,7 +89,7 @@ class _MyRecipesState extends State<MyRecipes> {
               leading: const Icon(Icons.search),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 16.0),
             Expanded(
               child: ListView.builder(
                 itemCount: filtered.length,
@@ -99,6 +99,13 @@ class _MyRecipesState extends State<MyRecipes> {
             ),
           ],
         ),
+      ),
+
+      bottomNavigationBar: NavigationBar(
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
+          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+        ],
       ),
     );
   }
