@@ -37,7 +37,7 @@ class _MyRecipesState extends State<MyRecipes> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
-  // later we will fetch this from a database
+  // later fetch this from a database
   final List<String> _recipes = ['Pasta', 'Pizza', 'Salat'];
 
   @override
@@ -48,12 +48,17 @@ class _MyRecipesState extends State<MyRecipes> {
 
   @override
   Widget build(BuildContext context) {
+    // only show recipes that match the search
     final filtered = _recipes
         .where((r) => r.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         title: Text(
           'Meine Rezepte',
           style: Theme.of(
