@@ -25,6 +25,15 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// model for a recipe
+class Recipe {
+  final String name;
+  final List<String> ingredients;
+  final List<String> steps;
+
+  Recipe({required this.name, required this.ingredients, required this.steps});
+}
+
 // home page of the application
 class MyRecipes extends StatefulWidget {
   const MyRecipes({super.key});
@@ -38,7 +47,31 @@ class _MyRecipesState extends State<MyRecipes> {
   String _query = '';
 
   // later fetch this from a database
-  final List<String> _recipes = ['Pasta', 'Pizza', 'Salat'];
+  final List<Recipe> _recipes = [
+    Recipe(
+      name: 'Pasta',
+      ingredients: ['Nudeln', 'Tomaten', 'Knoblauch'],
+      steps: [
+        'Nudeln kochen',
+        'Tomaten und Knoblauch anbraten',
+        'Nudeln mit Sauce vermischen',
+      ],
+    ),
+    Recipe(
+      name: 'Pizza',
+      ingredients: ['Teig', 'Tomatensoße', 'Käse'],
+      steps: ['Teig ausrollen', 'Tomatensoße aufteilen', 'Käse auftragen'],
+    ),
+    Recipe(
+      name: 'Salat',
+      ingredients: ['Salatblätter', 'Tomaten', 'Gurken'],
+      steps: [
+        'Salatblätter waschen',
+        'Tomaten und Gurken schneiden',
+        'Salat mischen',
+      ],
+    ),
+  ];
 
   @override
   void dispose() {
@@ -50,7 +83,7 @@ class _MyRecipesState extends State<MyRecipes> {
   Widget build(BuildContext context) {
     // only show recipes that match the search
     final filtered = _recipes
-        .where((r) => r.toLowerCase().contains(_query.toLowerCase()))
+        .where((r) => r.name.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
     return Scaffold(
@@ -121,7 +154,7 @@ class _MyRecipesState extends State<MyRecipes> {
                                 children: [
                                   // title of the recipe
                                   Text(
-                                    filtered[index],
+                                    filtered[index].name,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -133,7 +166,9 @@ class _MyRecipesState extends State<MyRecipes> {
 
                                   // description of the recipe
                                   Text(
-                                    'Keine Beschreibung',
+                                    filtered[index].ingredients.join(', '),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
                                         ?.copyWith(
                                           color: Theme.of(
