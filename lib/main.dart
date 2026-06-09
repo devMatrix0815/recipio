@@ -29,9 +29,15 @@ class MyApp extends StatelessWidget {
 class Recipe {
   final String name;
   final List<String> ingredients;
+  final List<String> ingredientsPreview;
   final List<String> steps;
 
-  Recipe({required this.name, required this.ingredients, required this.steps});
+  Recipe({
+    required this.name,
+    required this.ingredients,
+    required this.ingredientsPreview,
+    required this.steps,
+  });
 }
 
 // home page of the application
@@ -50,7 +56,8 @@ class _MyRecipesState extends State<MyRecipes> {
   final List<Recipe> _recipes = [
     Recipe(
       name: 'Pasta',
-      ingredients: ['Nudeln', 'Tomaten', 'Knoblauch'],
+      ingredients: ['100g Nudeln', '200g Tomaten', '2 Zehen Knoblauch'],
+      ingredientsPreview: ['Nudeln', 'Tomaten', 'Knoblauch'],
       steps: [
         'Nudeln kochen',
         'Tomaten und Knoblauch anbraten',
@@ -59,12 +66,14 @@ class _MyRecipesState extends State<MyRecipes> {
     ),
     Recipe(
       name: 'Pizza',
-      ingredients: ['Teig', 'Tomatensoße', 'Käse'],
+      ingredients: ['Teig', '500g Tomatensoße', '200g Käse'],
+      ingredientsPreview: ['Teig', 'Tomatensoße', 'Käse'],
       steps: ['Teig ausrollen', 'Tomatensoße aufteilen', 'Käse auftragen'],
     ),
     Recipe(
       name: 'Salat',
       ingredients: ['Salatblätter', 'Tomaten', 'Gurken'],
+      ingredientsPreview: ['Salatblätter', 'Tomaten', 'Gurken'],
       steps: [
         'Salatblätter waschen',
         'Tomaten und Gurken schneiden',
@@ -137,7 +146,15 @@ class _MyRecipesState extends State<MyRecipes> {
                   child: Card(
                     clipBehavior: Clip.hardEdge,
                     child: InkWell(
-                      onTap: () => debugPrint('Card tapped.'),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                RecipeDetail(recipe: filtered[index]),
+                          ),
+                        );
+                      },
 
                       child: Padding(
                         padding: const EdgeInsets.symmetric(
@@ -166,7 +183,9 @@ class _MyRecipesState extends State<MyRecipes> {
 
                                   // description of the recipe
                                   Text(
-                                    filtered[index].ingredients.join(', '),
+                                    filtered[index].ingredientsPreview.join(
+                                      ', ',
+                                    ),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
@@ -209,6 +228,49 @@ class _MyRecipesState extends State<MyRecipes> {
       floatingActionButton: FloatingActionButton(
         onPressed: () => debugPrint('Add recipe.'),
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+}
+
+// detail page for a recipe
+class RecipeDetail extends StatelessWidget {
+  final Recipe recipe;
+
+  const RecipeDetail({super.key, required this.recipe});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        title: Text(
+          recipe.name,
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Zutaten', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8.0),
+            ...recipe.ingredients.map((ingredient) => Text('• $ingredient')),
+            const SizedBox(height: 16.0),
+            Text('Anleitung', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8.0),
+            ...recipe.steps.asMap().entries.map(
+              (entry) => Text('${entry.key + 1}. ${entry.value}'),
+            ),
+          ],
+        ),
       ),
     );
   }
