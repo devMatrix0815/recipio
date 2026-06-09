@@ -170,6 +170,11 @@ class _MyRecipesState extends State<MyRecipes> {
           NavigationDestination(icon: Icon(Icons.search), label: '...'),
         ],
       ),
+
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => debugPrint('Add recipe.'),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
