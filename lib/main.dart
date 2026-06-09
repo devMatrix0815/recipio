@@ -94,12 +94,70 @@ class _MyRecipesState extends State<MyRecipes> {
               leading: const Icon(Icons.search),
             ),
 
-            const SizedBox(height: 16.0),
+            // Recipe list
+            const SizedBox(height: 32.0),
             Expanded(
               child: ListView.builder(
                 itemCount: filtered.length,
-                itemBuilder: (context, index) =>
-                    ListTile(title: Text(filtered[index])),
+                itemBuilder: (context, index) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Card(
+                    clipBehavior: Clip.hardEdge,
+                    child: InkWell(
+                      onTap: () => debugPrint('Card tapped.'),
+
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 14.0,
+                        ),
+
+                        // Recipe title and description
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // title of the recipe
+                                  Text(
+                                    filtered[index],
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w600),
+                                  ),
+
+                                  // space between title and description
+                                  const SizedBox(height: 4.0),
+
+                                  // description of the recipe
+                                  Text(
+                                    'Keine Beschreibung',
+                                    style: Theme.of(context).textTheme.bodySmall
+                                        ?.copyWith(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.onSurfaceVariant,
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // right arrow icon
+                            Icon(
+                              Icons.chevron_right,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ],
