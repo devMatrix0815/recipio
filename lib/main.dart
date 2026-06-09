@@ -55,13 +55,34 @@ class _MyRecipesState extends State<MyRecipes> {
   // later fetch this from a database
   final List<Recipe> _recipes = [
     Recipe(
-      name: 'Pasta',
-      ingredients: ['100g Nudeln', '200g Tomaten', '2 Zehen Knoblauch'],
-      ingredientsPreview: ['Nudeln', 'Tomaten', 'Knoblauch'],
+      name: 'Schokomuffins',
+      ingredients: [
+        '125 g weiche Butter',
+        '150 g Zucker',
+        '1 Pck. Vanillezucker',
+        '2 Eier',
+        '200 g Zartbitterschokolade',
+        '200 g Mehl',
+        '4 EL Backkakao',
+        '1 Prise Salz',
+        '2 TL Backpulver',
+        '175 ml Milch',
+      ],
+      ingredientsPreview: [
+        'weiche Butter',
+        'Zucker',
+        'Vanillezucker',
+        'Eier',
+        'Zartbitterschokolade',
+        'Mehl',
+        'Backkakao',
+        'Salz',
+        'Backpulver',
+        'Milch',
+      ],
       steps: [
-        'Nudeln kochen',
-        'Tomaten und Knoblauch anbraten',
-        'Nudeln mit Sauce vermischen',
+        'Butter mit Zucker und Vanillezucker verrühren. Eier unterrühren. Zartbitterschokolade grob hacken. Ofen auf 180 Grad (Umluft: 160 Grad) vorheizen. Mehl mit Kakaopulver, Salz und Backpulver vermischen. Mehlmischung mit der Milch zur Butter-Zuckermischung geben und alles gut verrühren. Etwa zwei Drittel der gehackten Schokolade unterheben.',
+        'Die Mulden eines Muffinblechs mit Förmchen auslegen. Mit einem Eisportionierer den Teig auf die Förmchen verteilen. Die restlichen gehackten Schokostückchen auf den Muffins verteilen. Im vorgeheizten Ofen ca. 25 Min backen.',
       ],
     ),
     Recipe(
@@ -257,20 +278,72 @@ class RecipeDetail extends StatelessWidget {
 
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: ListView(
           children: [
-            Text('Zutaten', style: Theme.of(context).textTheme.titleMedium),
+            // ingredients section
+            Text(
+              'Zutaten',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+
             const SizedBox(height: 8.0),
-            ...recipe.ingredients.map((ingredient) => Text('• $ingredient')),
-            const SizedBox(height: 16.0),
-            Text('Anleitung', style: Theme.of(context).textTheme.titleMedium),
+            ...recipe.ingredients.map(
+              (ingredient) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 24.0),
+                    const Icon(Icons.circle, size: 8),
+                    const SizedBox(width: 16.0),
+                    Text(ingredient),
+                  ],
+                ),
+              ),
+            ),
+
+            // space between ingredients and steps
+            const SizedBox(height: 32.0),
+
+            // steps section
+            Text(
+              'Zubereitung',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+
             const SizedBox(height: 8.0),
             ...recipe.steps.asMap().entries.map(
-              (entry) => Text('${entry.key + 1}. ${entry.value}'),
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 16.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(width: 24.0),
+                    SizedBox(
+                      width: 24.0,
+                      child: Text(
+                        '${entry.key + 1}.',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Expanded(child: Text(entry.value)),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
+      ),
+
+      bottomNavigationBar: NavigationBar(
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
+          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+        ],
       ),
     );
   }
