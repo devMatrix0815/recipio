@@ -1,5 +1,6 @@
 // imports
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 // Run the app
 void main() {
@@ -87,6 +88,7 @@ class _MyRecipesState extends State<MyRecipes> {
     ),
   ];
 
+  // set free controller
   @override
   void dispose() {
     _searchController.dispose();
@@ -284,7 +286,7 @@ class RecipeDetail extends StatelessWidget {
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 16.0),
                     Text(
-                      recipe.amount[entry.key] + ' ',
+                      '${recipe.amount[entry.key]} ',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(entry.value),
@@ -347,69 +349,157 @@ class CreateRecipe extends StatefulWidget {
 }
 
 class _CreateRecipeState extends State<CreateRecipe> {
+  // controller for name text-field
+  final TextEditingController _nameController = TextEditingController();
+
+  // controller and focus node for every text-field (ingredient)
   final List<TextEditingController> _ingredientControllers = [
     TextEditingController(),
   ];
   final List<FocusNode> _focusNodes = [FocusNode()];
 
+  // attach new empty text-field and focus on it (ingredient)
   void _addIngredientField() {
-    // add new focus node and controller & rebuild widget
+    // add new controller and focus node to list
     setState(() {
       _ingredientControllers.add(TextEditingController());
       _focusNodes.add(FocusNode());
     });
-
-    // set focus to new field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes.last.requestFocus();
     });
   }
 
-  // clean background objects who are not needed
+  // remove text-field at index and focus the field before (ingredient)
+  void _removeIngredientField(int i) {
+    if (_ingredientControllers.length <= 1) {
+      return; // not less then 1 ingredient
+    }
+
+    // remove controller + focus node
+    _ingredientControllers[i].dispose();
+    _focusNodes[i].dispose();
+
+    setState(() {
+      _ingredientControllers.removeAt(i);
+      _focusNodes.removeAt(i);
+    });
+
+    // focus previous field
+    if (i > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNodes[i - 1].requestFocus();
+      });
+    }
+  }
+
+  // clean page
   @override
   void dispose() {
-    for (final c in _ingredientControllers) c.dispose();
-    for (final f in _focusNodes) f.dispose();
+    _nameController.dispose();
+    for (final c in _ingredientControllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // implement text / colorsheme faster
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.surface,
+        backgroundColor: colorScheme.surface,
         surfaceTintColor: Colors.transparent,
         shadowColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
-          "Neues Rezept",
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+          'Neues Rezept',
+          style: textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
       ),
 
       body: Padding(
-        padding: EdgeInsetsGeometry.all(16.0),
+        padding: const EdgeInsets.all(16.0),
+
         child: ListView(
           children: [
-            // ingredients section
+            // recipe name section
             Text(
-              'Zutaten',
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              'Name',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
-            ...List.generate(
-              _ingredientControllers.length,
-              (i) => TextField(
-                controller: _ingredientControllers[i],
-                focusNode: _focusNodes[i],
-                textInputAction: TextInputAction.next,
-                onSubmitted: (_) => _addIngredientField(),
-                decoration: InputDecoration(hintText: 'Zutat ${i + 1}'),
+            // space + text-field
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.sentences,
+              decoration: const InputDecoration(hintText: 'Rezeptname...'),
+            ),
+
+            const SizedBox(height: 32.0),
+
+            // recipe ingredient section
+            Text(
+              'Zutaten',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
+            ),
+
+            // space + List with text-fields
+            const SizedBox(height: 12.0),
+            ...List.generate(_ingredientControllers.length, (i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+
+                child: KeyboardListener(
+                  focusNode: FocusNode(),
+                  onKeyEvent: (event) {
+                    // delete text-field on deleting in a empty input
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.backspace &&
+                        _ingredientControllers[i].text.isEmpty) {
+                      _removeIngredientField(i);
+                    }
+                  },
+
+                  child: TextField(
+                    controller: _ingredientControllers[i],
+                    focusNode: _focusNodes[i],
+                    textInputAction: TextInputAction.next,
+                    decoration: InputDecoration(
+                      hintText: 'z.B. 150g Zucker',
+                      suffixIcon: _ingredientControllers.length > 1
+                          // remove text-field
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => _removeIngredientField(i),
+                            )
+                          : null,
+                    ),
+
+                    // create new textfield when pressing enter
+                    onSubmitted: (_) => _addIngredientField(),
+                  ),
+                ),
+              );
+            }),
+
+            // space + add ingredient button
+            const SizedBox(height: 4.0),
+            TextButton.icon(
+              onPressed: _addIngredientField,
+              icon: const Icon(Icons.add),
+              label: const Text('Zutat hinzufügen'),
             ),
           ],
         ),
