@@ -29,13 +29,13 @@ class MyApp extends StatelessWidget {
 class Recipe {
   final String name;
   final List<String> ingredients;
-  final List<String> ingredientsPreview;
+  final List<String> amount;
   final List<String> steps;
 
   Recipe({
     required this.name,
     required this.ingredients,
-    required this.ingredientsPreview,
+    required this.amount,
     required this.steps,
   });
 }
@@ -56,20 +56,20 @@ class _MyRecipesState extends State<MyRecipes> {
   final List<Recipe> _recipes = [
     Recipe(
       name: 'Schokomuffins',
-      ingredients: [
-        '125 g weiche Butter',
-        '150 g Zucker',
-        '1 Pck. Vanillezucker',
+      amount: [
+        '125 g',
+        '150 g',
+        '1 Pck.',
         '2 Eier',
-        '200 g Zartbitterschokolade',
-        '200 g Mehl',
-        '4 EL Backkakao',
-        '1 Prise Salz',
-        '2 TL Backpulver',
-        '175 ml Milch',
+        '200 g',
+        '200 g',
+        '4 EL',
+        '1 Prise',
+        '2 TL',
+        '175 ml',
       ],
-      ingredientsPreview: [
-        'weiche Butter',
+      ingredients: [
+        'Weiche Butter',
         'Zucker',
         'Vanillezucker',
         'Eier',
@@ -83,22 +83,6 @@ class _MyRecipesState extends State<MyRecipes> {
       steps: [
         'Butter mit Zucker und Vanillezucker verrühren. Eier unterrühren. Zartbitterschokolade grob hacken. Ofen auf 180 Grad (Umluft: 160 Grad) vorheizen. Mehl mit Kakaopulver, Salz und Backpulver vermischen. Mehlmischung mit der Milch zur Butter-Zuckermischung geben und alles gut verrühren. Etwa zwei Drittel der gehackten Schokolade unterheben.',
         'Die Mulden eines Muffinblechs mit Förmchen auslegen. Mit einem Eisportionierer den Teig auf die Förmchen verteilen. Die restlichen gehackten Schokostückchen auf den Muffins verteilen. Im vorgeheizten Ofen ca. 25 Min backen.',
-      ],
-    ),
-    Recipe(
-      name: 'Pizza',
-      ingredients: ['Teig', '500g Tomatensoße', '200g Käse'],
-      ingredientsPreview: ['Teig', 'Tomatensoße', 'Käse'],
-      steps: ['Teig ausrollen', 'Tomatensoße aufteilen', 'Käse auftragen'],
-    ),
-    Recipe(
-      name: 'Salat',
-      ingredients: ['Salatblätter', 'Tomaten', 'Gurken'],
-      ingredientsPreview: ['Salatblätter', 'Tomaten', 'Gurken'],
-      steps: [
-        'Salatblätter waschen',
-        'Tomaten und Gurken schneiden',
-        'Salat mischen',
       ],
     ),
   ];
@@ -204,9 +188,7 @@ class _MyRecipesState extends State<MyRecipes> {
 
                                   // description of the recipe
                                   Text(
-                                    filtered[index].ingredientsPreview.join(
-                                      ', ',
-                                    ),
+                                    filtered[index].ingredients.join(', '),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
@@ -247,7 +229,10 @@ class _MyRecipesState extends State<MyRecipes> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () => debugPrint('Add recipe.'),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CreateRecipe()),
+        ),
         child: const Icon(Icons.add),
       ),
     );
@@ -289,8 +274,8 @@ class RecipeDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 8.0),
-            ...recipe.ingredients.map(
-              (ingredient) => Padding(
+            ...recipe.ingredients.asMap().entries.map(
+              (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -298,7 +283,11 @@ class RecipeDetail extends StatelessWidget {
                     const SizedBox(width: 24.0),
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 16.0),
-                    Text(ingredient),
+                    Text(
+                      recipe.amount[entry.key] + ' ',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text(entry.value),
                   ],
                 ),
               ),
@@ -333,6 +322,93 @@ class RecipeDetail extends StatelessWidget {
                     Expanded(child: Text(entry.value)),
                   ],
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+
+      bottomNavigationBar: NavigationBar(
+        destinations: const [
+          NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
+          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+        ],
+      ),
+    );
+  }
+}
+
+// page to create recipes
+class CreateRecipe extends StatefulWidget {
+  const CreateRecipe({super.key});
+
+  @override
+  State<CreateRecipe> createState() => _CreateRecipeState();
+}
+
+class _CreateRecipeState extends State<CreateRecipe> {
+  final List<TextEditingController> _ingredientControllers = [
+    TextEditingController(),
+  ];
+  final List<FocusNode> _focusNodes = [FocusNode()];
+
+  void _addIngredientField() {
+    // add new focus node and controller & rebuild widget
+    setState(() {
+      _ingredientControllers.add(TextEditingController());
+      _focusNodes.add(FocusNode());
+    });
+
+    // set focus to new field
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNodes.last.requestFocus();
+    });
+  }
+
+  // clean background objects who are not needed
+  @override
+  void dispose() {
+    for (final c in _ingredientControllers) c.dispose();
+    for (final f in _focusNodes) f.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        scrolledUnderElevation: 0,
+        title: Text(
+          "Neues Rezept",
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+      ),
+
+      body: Padding(
+        padding: EdgeInsetsGeometry.all(16.0),
+        child: ListView(
+          children: [
+            // ingredients section
+            Text(
+              'Zutaten',
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+
+            ...List.generate(
+              _ingredientControllers.length,
+              (i) => TextField(
+                controller: _ingredientControllers[i],
+                focusNode: _focusNodes[i],
+                textInputAction: TextInputAction.next,
+                onSubmitted: (_) => _addIngredientField(),
+                decoration: InputDecoration(hintText: 'Zutat ${i + 1}'),
               ),
             ),
           ],
