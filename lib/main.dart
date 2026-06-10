@@ -226,7 +226,7 @@ class _MyRecipesState extends State<MyRecipes> {
       bottomNavigationBar: NavigationBar(
         destinations: const [
           NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
-          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+          NavigationDestination(icon: Icon(Icons.search), label: 'SOON'),
         ],
       ),
 
@@ -333,7 +333,7 @@ class RecipeDetail extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         destinations: const [
           NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
-          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+          NavigationDestination(icon: Icon(Icons.search), label: 'SOON'),
         ],
       ),
     );
@@ -352,43 +352,56 @@ class _CreateRecipeState extends State<CreateRecipe> {
   // controller for name text-field
   final TextEditingController _nameController = TextEditingController();
 
-  // controller and focus node for every text-field (ingredient)
+  // controller and focus node for every text-field (ingredient + steps)
   final List<TextEditingController> _ingredientControllers = [
     TextEditingController(),
   ];
-  final List<FocusNode> _focusNodes = [FocusNode()];
 
-  // attach new empty text-field and focus on it (ingredient)
-  void _addIngredientField() {
+  final List<TextEditingController> _stepControllers = [
+    TextEditingController(),
+  ];
+
+  final List<FocusNode> _focusNodes = [FocusNode()];
+  final List<FocusNode> _stepFocusNodes = [FocusNode()];
+
+  // attach new empty text-field and focus on it
+  void _addField(
+    List<TextEditingController> controllers,
+    List<FocusNode> focusNodes,
+  ) {
     // add new controller and focus node to list
     setState(() {
-      _ingredientControllers.add(TextEditingController());
-      _focusNodes.add(FocusNode());
+      controllers.add(TextEditingController());
+      focusNodes.add(FocusNode());
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _focusNodes.last.requestFocus();
+      focusNodes.last.requestFocus();
     });
   }
 
-  // remove text-field at index and focus the field before (ingredient)
-  void _removeIngredientField(int i) {
-    if (_ingredientControllers.length <= 1) {
+  // remove text-field at index and focus the field before
+  void _removeField(
+    int i,
+    List<TextEditingController> controllers,
+    List<FocusNode> focusNodes,
+  ) {
+    if (controllers.length <= 1) {
       return; // not less then 1 ingredient
     }
 
     // remove controller + focus node
-    _ingredientControllers[i].dispose();
-    _focusNodes[i].dispose();
+    controllers[i].dispose();
+    focusNodes[i].dispose();
 
     setState(() {
-      _ingredientControllers.removeAt(i);
-      _focusNodes.removeAt(i);
+      controllers.removeAt(i);
+      focusNodes.removeAt(i);
     });
 
     // focus previous field
     if (i > 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _focusNodes[i - 1].requestFocus();
+        focusNodes[i - 1].requestFocus();
       });
     }
   }
@@ -402,6 +415,12 @@ class _CreateRecipeState extends State<CreateRecipe> {
     }
     for (final f in _focusNodes) {
       f.dispose();
+    }
+    for (final sc in _stepControllers) {
+      sc.dispose();
+    }
+    for (final sf in _stepFocusNodes) {
+      sf.dispose();
     }
     super.dispose();
   }
@@ -445,7 +464,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
               decoration: const InputDecoration(hintText: 'Rezeptname...'),
             ),
 
-            const SizedBox(height: 32.0),
+            const SizedBox(height: 48.0),
 
             // recipe ingredient section
             Text(
@@ -468,7 +487,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                     if (event is KeyDownEvent &&
                         event.logicalKey == LogicalKeyboardKey.backspace &&
                         _ingredientControllers[i].text.isEmpty) {
-                      _removeIngredientField(i);
+                      _removeField(i, _ingredientControllers, _focusNodes);
                     }
                   },
 
@@ -482,13 +501,18 @@ class _CreateRecipeState extends State<CreateRecipe> {
                           // remove text-field
                           ? IconButton(
                               icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => _removeIngredientField(i),
+                              onPressed: () => _removeField(
+                                i,
+                                _ingredientControllers,
+                                _focusNodes,
+                              ),
                             )
                           : null,
                     ),
 
                     // create new textfield when pressing enter
-                    onSubmitted: (_) => _addIngredientField(),
+                    onSubmitted: (_) =>
+                        _addField(_ingredientControllers, _focusNodes),
                   ),
                 ),
               );
@@ -497,9 +521,110 @@ class _CreateRecipeState extends State<CreateRecipe> {
             // space + add ingredient button
             const SizedBox(height: 4.0),
             TextButton.icon(
-              onPressed: _addIngredientField,
+              onPressed: () => _addField(_ingredientControllers, _focusNodes),
               icon: const Icon(Icons.add),
               label: const Text('Zutat hinzufügen'),
+            ),
+
+            // recipe ingredient section
+            const SizedBox(height: 32.0),
+            Text(
+              'Zubereitung',
+              style: textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 12.0),
+            ...List.generate(_stepControllers.length, (i) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: KeyboardListener(
+                  focusNode: FocusNode(),
+
+                  onKeyEvent: (event) {
+                    // delete text-field on deleting in a empty input
+                    if (event is KeyDownEvent &&
+                        event.logicalKey == LogicalKeyboardKey.backspace &&
+                        _stepControllers[i].text.isEmpty) {
+                      _removeField(i, _stepControllers, _stepFocusNodes);
+                    }
+                  },
+
+                  child: TextField(
+                    controller: _stepControllers[i],
+                    focusNode: _stepFocusNodes[i],
+                    keyboardType: TextInputType.multiline,
+                    maxLines: null,
+                    decoration: InputDecoration(
+                      hintText:
+                          'Hier kannst du den ${i + 1}. Schritt beschreiben.',
+                      suffixIcon: _stepControllers.length > 1
+                          // remove text-field
+                          ? IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => _removeField(
+                                i,
+                                _stepControllers,
+                                _stepFocusNodes,
+                              ),
+                            )
+                          : null,
+                    ),
+                    onChanged: (value) {
+                      if (value.contains('\n')) {
+                        _stepControllers[i].text = value.replaceAll('\n', '');
+                        _stepControllers[i]
+                            .selection = TextSelection.fromPosition(
+                          TextPosition(offset: _stepControllers[i].text.length),
+                        );
+
+                        _addField(_stepControllers, _stepFocusNodes);
+                      }
+                    },
+                  ),
+                ),
+              );
+            }),
+
+            // space + add step button
+            const SizedBox(height: 4.0),
+            TextButton.icon(
+              onPressed: () => _addField(_stepControllers, _stepFocusNodes),
+              icon: const Icon(Icons.add),
+              label: const Text('Schritt hinzufügen'),
+            ),
+
+            // add recipe button
+            Padding(
+              padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
+
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(12.0),
+                ),
+
+                child: TextButton(
+                  onPressed: () {
+                    // TODO: Rezept speichern
+                  },
+
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                  ),
+
+                  child: const Text(
+                    'Rezept hinzufügen',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -508,7 +633,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
       bottomNavigationBar: NavigationBar(
         destinations: const [
           NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
-          NavigationDestination(icon: Icon(Icons.search), label: '...'),
+          NavigationDestination(icon: Icon(Icons.search), label: 'SOON'),
         ],
       ),
     );
