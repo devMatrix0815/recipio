@@ -1,5 +1,6 @@
 // imports
 import 'dart:convert';
+import 'package:uuid/uuid.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -127,14 +128,17 @@ class _MyRecipesState extends State<MyRecipes> {
                   child: Card(
                     clipBehavior: Clip.hardEdge,
                     child: InkWell(
-                      onTap: () {
-                        Navigator.push(
+                      onTap: () async {
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (context) =>
                                 RecipeDetail(recipe: filtered[index]),
                           ),
                         );
+
+                        if (!mounted) return;
+                        await _loadRecipes();
                       },
 
                       child: Padding(
@@ -239,6 +243,27 @@ class RecipeDetail extends StatelessWidget {
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
+            tooltip: "Rezept löschen",
+            onPressed: () async {
+              // current data
+              final prefs = await SharedPreferences.getInstance();
+              final data = prefs.getString('recipe');
+              if (data == null) return;
+
+              // search for right id, then delete
+              List recipes = jsonDecode(data);
+              recipes.removeWhere((r) => r["id"] == recipe["id"]);
+              await prefs.setString('recipe', jsonEncode(recipes));
+
+              // go back to my recipes
+              if (!context.mounted) return;
+              Navigator.pop(context);
+            },
+          ),
+        ],
       ),
 
       body: Padding(
@@ -589,6 +614,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                     // array to save all amount &  ingredients
                     final amount = <String>[];
                     final ingredients = <String>[];
+                    final id = const Uuid().v4();
 
                     // seperate ingriedients input by amount & ingredient
                     for (final controller in _ingredientControllers) {
@@ -631,6 +657,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
 
                     // ceate object to save recipes
                     final newRecipe = {
+                      "id": id,
                       "name": _nameController.text,
                       "amount": amount,
                       "ingredients": ingredients,
