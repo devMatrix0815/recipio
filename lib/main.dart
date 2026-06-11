@@ -30,21 +30,6 @@ class MyApp extends StatelessWidget {
   }
 }
 
-// model for a recipe
-class Recipe {
-  final String name;
-  final List<String> ingredients;
-  final List<String> amount;
-  final List<String> steps;
-
-  Recipe({
-    required this.name,
-    required this.ingredients,
-    required this.amount,
-    required this.steps,
-  });
-}
-
 // home page of the application
 class MyRecipes extends StatefulWidget {
   const MyRecipes({super.key});
@@ -88,7 +73,7 @@ class _MyRecipesState extends State<MyRecipes> {
   Widget build(BuildContext context) {
     // only show recipes that match the search
     final filtered = _recipes
-        .where((r) => r.name.toLowerCase().contains(_query.toLowerCase()))
+        .where((r) => r["name"].toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
     return Scaffold(
@@ -167,7 +152,7 @@ class _MyRecipesState extends State<MyRecipes> {
                                 children: [
                                   // title of the recipe
                                   Text(
-                                    filtered[index].name,
+                                    filtered[index]['name'],
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -179,7 +164,7 @@ class _MyRecipesState extends State<MyRecipes> {
 
                                   // description of the recipe
                                   Text(
-                                    filtered[index].ingredients.join(', '),
+                                    filtered[index]['ingredients'].join(', '),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
@@ -220,10 +205,14 @@ class _MyRecipesState extends State<MyRecipes> {
       ),
 
       floatingActionButton: FloatingActionButton(
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CreateRecipe()),
-        ),
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateRecipe()),
+          );
+
+          await _loadRecipes();
+        },
         child: const Icon(Icons.add),
       ),
     );
@@ -232,7 +221,7 @@ class _MyRecipesState extends State<MyRecipes> {
 
 // detail page for a recipe
 class RecipeDetail extends StatelessWidget {
-  final Recipe recipe;
+  final Map<String, dynamic> recipe;
 
   const RecipeDetail({super.key, required this.recipe});
 
@@ -245,7 +234,7 @@ class RecipeDetail extends StatelessWidget {
         shadowColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
-          recipe.name,
+          recipe['name'],
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -265,7 +254,7 @@ class RecipeDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 8.0),
-            ...recipe.ingredients.asMap().entries.map(
+            ...recipe['ingredients'].asMap().entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: Row(
@@ -275,7 +264,7 @@ class RecipeDetail extends StatelessWidget {
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 16.0),
                     Text(
-                      '${recipe.amount[entry.key]} ',
+                      '${recipe['amount'][entry.key]} ',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(entry.value),
@@ -296,7 +285,7 @@ class RecipeDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 8.0),
-            ...recipe.steps.asMap().entries.map(
+            ...recipe['steps'].asMap().entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
@@ -338,9 +327,6 @@ class CreateRecipe extends StatefulWidget {
 }
 
 class _CreateRecipeState extends State<CreateRecipe> {
-  // for saving data
-  final _amount = <String>[];
-  final _ingredients = <String>[];
   // controller for name text-field
   final TextEditingController _nameController = TextEditingController();
 
@@ -396,18 +382,6 @@ class _CreateRecipeState extends State<CreateRecipe> {
         focusNodes[i - 1].requestFocus();
       });
     }
-  }
-
-  (String, String)? _parseIngredient(String input) {
-    // fetch amount
-    final match = RegExp(
-      r'^(\d+[\.,]?\d*\s*(?:g|kg|ml|l|EL|TL|Pck\.|Prise|Stück|St\.|Tasse)?\.?)\s+(.+)$',
-      caseSensitive: false,
-    ).firstMatch(input.trim());
-    if (match == null) return null;
-
-    _amount.add(match.group(1)!.trim());
-    _ingredients.add(match.group(2)!.trim());
   }
 
   // clean page
@@ -481,8 +455,6 @@ class _CreateRecipeState extends State<CreateRecipe> {
             // space + List with text-fields
             const SizedBox(height: 12.0),
             ...List.generate(_ingredientControllers.length, (i) {
-              _parseIngredient(_ingredientControllers[i].text);
-
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
 
@@ -614,15 +586,73 @@ class _CreateRecipeState extends State<CreateRecipe> {
 
                 child: TextButton(
                   onPressed: () async {
+                    // array to save all amount &  ingredients
+                    final amount = <String>[];
+                    final ingredients = <String>[];
+
+                    // seperate ingriedients input by amount & ingredient
+                    for (final controller in _ingredientControllers) {
+                      // ingredient input
+                      final input = controller.text.trim();
+
+                      // front seperate
+                      final forward = RegExp(
+                        r'^(\d+[\.,]?\d*\s*(?:g|kg|ml|l|EL|TL|Pck\.|Prise|Stück|St\.|Tasse)?\.?)\s+(.+)$',
+                        caseSensitive: false,
+                      );
+
+                      // back seperate
+                      final backward = RegExp(
+                        r'^(.+?)\s+(\d+[\.,]?\d*\s*(?:g|kg|ml|l|EL|TL|Pck\.|Prise|Stück|St\.|Tasse)?\.?)$',
+                        caseSensitive: false,
+                      );
+
+                      // get front and back
+                      final m1 = forward.firstMatch(input);
+                      final m2 = backward.firstMatch(input);
+
+                      // if front is amoutnt
+                      if (m1 != null) {
+                        amount.add(m1.group(1)!);
+                        ingredients.add(m1.group(2)!);
+                      }
+                      // if back is amount
+                      else if (m2 != null) {
+                        ingredients.add(m2.group(1)!);
+                        amount.add(m2.group(2)!);
+                      }
+                      // if no amount
+                      else {
+                        // fallback!
+                        ingredients.add(input);
+                        amount.add('');
+                      }
+                    }
+
+                    // ceate object to save recipes
                     final newRecipe = {
                       "name": _nameController.text,
-                      "amount": _amount,
-                      "ingredients": _ingredients,
+                      "amount": amount,
+                      "ingredients": ingredients,
                       "steps": _stepControllers.map((c) => c.text).toList(),
                     };
 
+                    // shared_preferences service
                     final prefs = await SharedPreferences.getInstance();
-                    await prefs.setString('recipe', jsonEncode(newRecipe));
+
+                    // get current recipes
+                    final existing = prefs.getString('recipe');
+                    List recipes = existing != null ? jsonDecode(existing) : [];
+
+                    // add the new recipe
+                    recipes.add(newRecipe);
+
+                    // set the new object so prefs
+                    await prefs.setString('recipe', jsonEncode(recipes));
+
+                    // navigate back to my recipes
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
                   },
 
                   style: TextButton.styleFrom(
