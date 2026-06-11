@@ -1,9 +1,13 @@
 // imports
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Run the app
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -53,40 +57,25 @@ class _MyRecipesState extends State<MyRecipes> {
   final TextEditingController _searchController = TextEditingController();
   String _query = '';
 
-  // later fetch this from a database
-  final List<Recipe> _recipes = [
-    Recipe(
-      name: 'Schokomuffins',
-      amount: [
-        '125 g',
-        '150 g',
-        '1 Pck.',
-        '2 Eier',
-        '200 g',
-        '200 g',
-        '4 EL',
-        '1 Prise',
-        '2 TL',
-        '175 ml',
-      ],
-      ingredients: [
-        'Weiche Butter',
-        'Zucker',
-        'Vanillezucker',
-        'Eier',
-        'Zartbitterschokolade',
-        'Mehl',
-        'Backkakao',
-        'Salz',
-        'Backpulver',
-        'Milch',
-      ],
-      steps: [
-        'Butter mit Zucker und Vanillezucker verrühren. Eier unterrühren. Zartbitterschokolade grob hacken. Ofen auf 180 Grad (Umluft: 160 Grad) vorheizen. Mehl mit Kakaopulver, Salz und Backpulver vermischen. Mehlmischung mit der Milch zur Butter-Zuckermischung geben und alles gut verrühren. Etwa zwei Drittel der gehackten Schokolade unterheben.',
-        'Die Mulden eines Muffinblechs mit Förmchen auslegen. Mit einem Eisportionierer den Teig auf die Förmchen verteilen. Die restlichen gehackten Schokostückchen auf den Muffins verteilen. Im vorgeheizten Ofen ca. 25 Min backen.',
-      ],
-    ),
-  ];
+  // fetch recipes from storage
+  List<dynamic> _recipes = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipes();
+  }
+
+  Future<void> _loadRecipes() async {
+    final prefs = await SharedPreferences.getInstance();
+    final data = prefs.getString('recipe');
+
+    if (data != null && data.isNotEmpty) {
+      setState(() {
+        _recipes = jsonDecode(data);
+      });
+    }
+  }
 
   // set free controller
   @override
@@ -349,6 +338,9 @@ class CreateRecipe extends StatefulWidget {
 }
 
 class _CreateRecipeState extends State<CreateRecipe> {
+  // for saving data
+  final _amount = <String>[];
+  final _ingredients = <String>[];
   // controller for name text-field
   final TextEditingController _nameController = TextEditingController();
 
@@ -404,6 +396,18 @@ class _CreateRecipeState extends State<CreateRecipe> {
         focusNodes[i - 1].requestFocus();
       });
     }
+  }
+
+  (String, String)? _parseIngredient(String input) {
+    // fetch amount
+    final match = RegExp(
+      r'^(\d+[\.,]?\d*\s*(?:g|kg|ml|l|EL|TL|Pck\.|Prise|Stück|St\.|Tasse)?\.?)\s+(.+)$',
+      caseSensitive: false,
+    ).firstMatch(input.trim());
+    if (match == null) return null;
+
+    _amount.add(match.group(1)!.trim());
+    _ingredients.add(match.group(2)!.trim());
   }
 
   // clean page
@@ -477,6 +481,8 @@ class _CreateRecipeState extends State<CreateRecipe> {
             // space + List with text-fields
             const SizedBox(height: 12.0),
             ...List.generate(_ingredientControllers.length, (i) {
+              _parseIngredient(_ingredientControllers[i].text);
+
               return Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
 
@@ -607,8 +613,16 @@ class _CreateRecipeState extends State<CreateRecipe> {
                 ),
 
                 child: TextButton(
-                  onPressed: () {
-                    // TODO: Rezept speichern
+                  onPressed: () async {
+                    final newRecipe = {
+                      "name": _nameController.text,
+                      "amount": _amount,
+                      "ingredients": _ingredients,
+                      "steps": _stepControllers.map((c) => c.text).toList(),
+                    };
+
+                    final prefs = await SharedPreferences.getInstance();
+                    await prefs.setString('recipe', jsonEncode(newRecipe));
                   },
 
                   style: TextButton.styleFrom(
