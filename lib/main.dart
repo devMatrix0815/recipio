@@ -352,6 +352,11 @@ class CreateRecipe extends StatefulWidget {
 }
 
 class _CreateRecipeState extends State<CreateRecipe> {
+  // error variables
+  String? _nameError;
+  String? _ingredientErrors;
+  String? _stepErrors;
+
   // controller for name text-field
   final TextEditingController _nameController = TextEditingController();
 
@@ -464,7 +469,10 @@ class _CreateRecipeState extends State<CreateRecipe> {
             TextField(
               controller: _nameController,
               textCapitalization: TextCapitalization.sentences,
-              decoration: const InputDecoration(hintText: 'Rezeptname...'),
+              decoration: InputDecoration(
+                hintText: 'Rezeptname...',
+                errorText: _nameError,
+              ),
             ),
 
             const SizedBox(height: 48.0),
@@ -500,6 +508,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                     textInputAction: TextInputAction.next,
                     decoration: InputDecoration(
                       hintText: 'z.B. 150g Zucker',
+                      errorText: _ingredientErrors,
                       suffixIcon: _ingredientControllers.length > 1
                           // remove text-field
                           ? IconButton(
@@ -562,6 +571,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                     decoration: InputDecoration(
                       hintText:
                           'Hier kannst du den ${i + 1}. Schritt beschreiben.',
+                      errorText: _stepErrors,
                       suffixIcon: _stepControllers.length > 1
                           // remove text-field
                           ? IconButton(
@@ -655,13 +665,44 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       }
                     }
 
+                    // only load filled inputs
+                    final filledIngredients = ingredients
+                        .where((c) => c.isNotEmpty)
+                        .toList();
+
+                    final filledSteps = _stepControllers
+                        .where((c) => c.text.trim().isNotEmpty)
+                        .toList();
+
+                    // set errors
+                    setState(() {
+                      _nameError = _nameController.text.isEmpty
+                          ? 'Name ist erforderlich'
+                          : null;
+
+                      _ingredientErrors = filledIngredients.isEmpty
+                          ? 'Mindestens 1 Zutat erforderlich'
+                          : null;
+
+                      _stepErrors = filledSteps.isEmpty
+                          ? 'Mindestens 1 Schritt erforderlich'
+                          : null;
+                    });
+
+                    // return if there is a error
+                    if (_nameError != null ||
+                        _ingredientErrors != null ||
+                        _stepErrors != null) {
+                      return;
+                    }
+
                     // ceate object to save recipes
                     final newRecipe = {
                       "id": id,
                       "name": _nameController.text,
                       "amount": amount,
-                      "ingredients": ingredients,
-                      "steps": _stepControllers.map((c) => c.text).toList(),
+                      "ingredients": filledIngredients,
+                      "steps": filledSteps.map((c) => c.text.trim()).toList(),
                     };
 
                     // shared_preferences service
