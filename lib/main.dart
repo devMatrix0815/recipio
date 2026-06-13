@@ -1,10 +1,11 @@
 // imports
-import 'dart:convert';
 import 'package:uuid/uuid.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
+import 'models/recipe.dart';
+import 'services/recipe_service.dart';
 
 // Run the app
 void main() async {
@@ -44,7 +45,7 @@ class _MyRecipesState extends State<MyRecipes> {
   String _query = '';
 
   // fetch recipes from storage
-  List<dynamic> _recipes = [];
+  List<Recipe> _recipes = [];
 
   @override
   void initState() {
@@ -53,14 +54,10 @@ class _MyRecipesState extends State<MyRecipes> {
   }
 
   Future<void> _loadRecipes() async {
-    final prefs = await SharedPreferences.getInstance();
-    final data = prefs.getString('recipe');
-
-    if (data != null && data.isNotEmpty) {
-      setState(() {
-        _recipes = jsonDecode(data);
-      });
-    }
+    final recipes = await RecipeService().loadAll();
+    setState(() {
+      _recipes = recipes;
+    });
   }
 
   // set free controller
@@ -74,7 +71,7 @@ class _MyRecipesState extends State<MyRecipes> {
   Widget build(BuildContext context) {
     // only show recipes that match the search
     final filtered = _recipes
-        .where((r) => r["name"].toLowerCase().contains(_query.toLowerCase()))
+        .where((r) => r.name.toLowerCase().contains(_query.toLowerCase()))
         .toList();
 
     return Scaffold(
@@ -156,7 +153,7 @@ class _MyRecipesState extends State<MyRecipes> {
                                 children: [
                                   // title of the recipe
                                   Text(
-                                    filtered[index]['name'],
+                                    filtered[index].name,
                                     style: Theme.of(context)
                                         .textTheme
                                         .titleMedium
@@ -168,7 +165,7 @@ class _MyRecipesState extends State<MyRecipes> {
 
                                   // description of the recipe
                                   Text(
-                                    filtered[index]['ingredients'].join(', '),
+                                    filtered[index].ingredients.join(', '),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: Theme.of(context).textTheme.bodySmall
@@ -225,8 +222,7 @@ class _MyRecipesState extends State<MyRecipes> {
 
 // detail page for a recipe
 class RecipeDetail extends StatelessWidget {
-  final Map<String, dynamic> recipe;
-
+  final Recipe recipe;
   const RecipeDetail({super.key, required this.recipe});
 
   @override
@@ -238,7 +234,7 @@ class RecipeDetail extends StatelessWidget {
         shadowColor: Colors.transparent,
         scrolledUnderElevation: 0,
         title: Text(
-          recipe['name'],
+          recipe.name,
           style: Theme.of(
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -248,15 +244,8 @@ class RecipeDetail extends StatelessWidget {
             icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
             tooltip: "Rezept löschen",
             onPressed: () async {
-              // current data
-              final prefs = await SharedPreferences.getInstance();
-              final data = prefs.getString('recipe');
-              if (data == null) return;
-
-              // search for right id, then delete
-              List recipes = jsonDecode(data);
-              recipes.removeWhere((r) => r["id"] == recipe["id"]);
-              await prefs.setString('recipe', jsonEncode(recipes));
+              // delete recipe
+              await RecipeService().delete(recipe.id);
 
               // go back to my recipes
               if (!context.mounted) return;
@@ -279,7 +268,7 @@ class RecipeDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 8.0),
-            ...recipe['ingredients'].asMap().entries.map(
+            ...recipe.ingredients.asMap().entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.symmetric(vertical: 3.0),
                 child: Row(
@@ -289,7 +278,7 @@ class RecipeDetail extends StatelessWidget {
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 16.0),
                     Text(
-                      '${recipe['amount'][entry.key]} ',
+                      '${recipe.amount[entry.key]} ',
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(entry.value),
@@ -310,7 +299,7 @@ class RecipeDetail extends StatelessWidget {
             ),
 
             const SizedBox(height: 8.0),
-            ...recipe['steps'].asMap().entries.map(
+            ...recipe.steps.asMap().entries.map(
               (entry) => Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: Row(
@@ -696,27 +685,16 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       return;
                     }
 
-                    // ceate object to save recipes
-                    final newRecipe = {
-                      "id": id,
-                      "name": _nameController.text,
-                      "amount": amount,
-                      "ingredients": filledIngredients,
-                      "steps": filledSteps.map((c) => c.text.trim()).toList(),
-                    };
-
-                    // shared_preferences service
-                    final prefs = await SharedPreferences.getInstance();
-
-                    // get current recipes
-                    final existing = prefs.getString('recipe');
-                    List recipes = existing != null ? jsonDecode(existing) : [];
-
-                    // add the new recipe
-                    recipes.add(newRecipe);
-
-                    // set the new object so prefs
-                    await prefs.setString('recipe', jsonEncode(recipes));
+                    // save recipe
+                    await RecipeService().save(
+                      Recipe(
+                        id: id,
+                        name: _nameController.text,
+                        amount: amount,
+                        ingredients: filledIngredients,
+                        steps: filledSteps.map((c) => c.text.trim()).toList(),
+                      ),
+                    );
 
                     // navigate back to my recipes
                     if (!context.mounted) return;
