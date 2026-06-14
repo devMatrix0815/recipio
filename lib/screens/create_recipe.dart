@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+
+// packages
 import 'package:uuid/uuid.dart';
+import 'package:flutter/services.dart';
+
+// model + service
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
 
+// define screen
 class CreateRecipe extends StatefulWidget {
   const CreateRecipe({super.key});
 
@@ -12,10 +17,12 @@ class CreateRecipe extends StatefulWidget {
 }
 
 class _CreateRecipeState extends State<CreateRecipe> {
+  // text-field error variables
   String? _nameError;
   String? _ingredientErrors;
   String? _stepErrors;
 
+  // to read text-field data
   final TextEditingController _nameController = TextEditingController();
   final List<TextEditingController> _ingredientControllers = [
     TextEditingController(),
@@ -23,6 +30,8 @@ class _CreateRecipeState extends State<CreateRecipe> {
   final List<TextEditingController> _stepControllers = [
     TextEditingController(),
   ];
+
+  // to decide on which input to focus
   final List<FocusNode> _focusNodes = [FocusNode()];
   final List<FocusNode> _stepFocusNodes = [FocusNode()];
 
@@ -30,10 +39,13 @@ class _CreateRecipeState extends State<CreateRecipe> {
     List<TextEditingController> controllers,
     List<FocusNode> focusNodes,
   ) {
+    // to set new text-field
     setState(() {
       controllers.add(TextEditingController());
       focusNodes.add(FocusNode());
     });
+
+    // to focus on new text-field
     WidgetsBinding.instance.addPostFrameCallback(
       (_) => focusNodes.last.requestFocus(),
     );
@@ -44,13 +56,20 @@ class _CreateRecipeState extends State<CreateRecipe> {
     List<TextEditingController> controllers,
     List<FocusNode> focusNodes,
   ) {
+    // not less then 1 text-field
     if (controllers.length <= 1) return;
+
+    // clear controller and focus on index
     controllers[i].dispose();
     focusNodes[i].dispose();
+
+    // remove index from controller and focus
     setState(() {
       controllers.removeAt(i);
       focusNodes.removeAt(i);
     });
+
+    // focus previous text-field
     if (i > 0) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => focusNodes[i - 1].requestFocus(),
@@ -58,18 +77,28 @@ class _CreateRecipeState extends State<CreateRecipe> {
     }
   }
 
+  // set free controllers
   @override
   void dispose() {
     _nameController.dispose();
-    for (final c in _ingredientControllers) c.dispose();
-    for (final f in _focusNodes) f.dispose();
-    for (final sc in _stepControllers) sc.dispose();
-    for (final sf in _stepFocusNodes) sf.dispose();
+    for (final c in _ingredientControllers) {
+      c.dispose();
+    }
+    for (final f in _focusNodes) {
+      f.dispose();
+    }
+    for (final sc in _stepControllers) {
+      sc.dispose();
+    }
+    for (final sf in _stepFocusNodes) {
+      sf.dispose();
+    }
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // connect to shemes
     final colorScheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
 
@@ -86,7 +115,10 @@ class _CreateRecipeState extends State<CreateRecipe> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
+
+        // to scroll
         child: ListView(
+          // name section
           children: [
             Text(
               'Name',
@@ -94,6 +126,8 @@ class _CreateRecipeState extends State<CreateRecipe> {
                 fontWeight: FontWeight.bold,
               ),
             ),
+
+            // space + text-field
             const SizedBox(height: 12.0),
             TextField(
               controller: _nameController,
@@ -103,18 +137,26 @@ class _CreateRecipeState extends State<CreateRecipe> {
                 errorText: _nameError,
               ),
             ),
+
+            // big space
             const SizedBox(height: 48.0),
+
+            // ingridients section
             Text(
               'Zutaten',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
+
+            // space + dynamic ingredient text-field generation
             const SizedBox(height: 12.0),
             ...List.generate(
               _ingredientControllers.length,
               (i) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
+
+                // remove field when no pressing backspace in empty text-field
                 child: KeyboardListener(
                   focusNode: FocusNode(),
                   onKeyEvent: (event) {
@@ -124,13 +166,17 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       _removeField(i, _ingredientControllers, _focusNodes);
                     }
                   },
+
                   child: TextField(
                     controller: _ingredientControllers[i],
                     focusNode: _focusNodes[i],
                     textInputAction: TextInputAction.next,
+
                     decoration: InputDecoration(
                       hintText: 'z.B. 150g Zucker',
                       errorText: _ingredientErrors,
+
+                      // to delete manually
                       suffixIcon: _ingredientControllers.length > 1
                           ? IconButton(
                               icon: const Icon(Icons.close, size: 18),
@@ -142,30 +188,42 @@ class _CreateRecipeState extends State<CreateRecipe> {
                             )
                           : null,
                     ),
+
+                    // add text-field when pressing enter
                     onSubmitted: (_) =>
                         _addField(_ingredientControllers, _focusNodes),
                   ),
                 ),
               ),
             ),
+
+            // space + button to manually add text-field
             const SizedBox(height: 4.0),
             TextButton.icon(
               onPressed: () => _addField(_ingredientControllers, _focusNodes),
               icon: const Icon(Icons.add),
               label: const Text('Zutat hinzufügen'),
             ),
+
+            // big space
             const SizedBox(height: 32.0),
+
+            // steps section
             Text(
               'Zubereitung',
               style: textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
             ),
+
+            // space + dynamic step text-field generation
             const SizedBox(height: 12.0),
             ...List.generate(
               _stepControllers.length,
               (i) => Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
+
+                // remove field when no pressing backspace in empty text-field
                 child: KeyboardListener(
                   focusNode: FocusNode(),
                   onKeyEvent: (event) {
@@ -175,15 +233,19 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       _removeField(i, _stepControllers, _stepFocusNodes);
                     }
                   },
+
                   child: TextField(
                     controller: _stepControllers[i],
                     focusNode: _stepFocusNodes[i],
                     keyboardType: TextInputType.multiline,
                     maxLines: null,
+
                     decoration: InputDecoration(
                       hintText:
                           'Hier kannst du den ${i + 1}. Schritt beschreiben.',
                       errorText: _stepErrors,
+
+                      // to delete manually
                       suffixIcon: _stepControllers.length > 1
                           ? IconButton(
                               icon: const Icon(Icons.close, size: 18),
@@ -195,6 +257,8 @@ class _CreateRecipeState extends State<CreateRecipe> {
                             )
                           : null,
                     ),
+
+                    // add text-field when pressing enter
                     onChanged: (value) {
                       if (value.contains('\n')) {
                         _stepControllers[i].text = value.replaceAll('\n', '');
@@ -209,12 +273,16 @@ class _CreateRecipeState extends State<CreateRecipe> {
                 ),
               ),
             ),
+
+            // space + button to manually add text-field
             const SizedBox(height: 4.0),
             TextButton.icon(
               onPressed: () => _addField(_stepControllers, _stepFocusNodes),
               icon: const Icon(Icons.add),
               label: const Text('Schritt hinzufügen'),
             ),
+
+            // add recipe button
             Padding(
               padding: const EdgeInsets.only(top: 32.0, bottom: 16.0),
               child: Container(
@@ -223,14 +291,20 @@ class _CreateRecipeState extends State<CreateRecipe> {
                   color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(12.0),
                 ),
+
                 child: TextButton(
                   onPressed: () async {
+                    // for json format
                     final amount = <String>[];
                     final ingredients = <String>[];
                     final id = const Uuid().v4();
 
+                    // seperate ingridients and amount
                     for (final controller in _ingredientControllers) {
+                      // input value
                       final input = controller.text.trim();
+
+                      // filter
                       final forward = RegExp(
                         r'^(\d+[\.,]?\d*\s*(?:g|kg|ml|l|EL|TL|Pck\.|Prise|Stück|St\.|Tasse)?\.?)\s+(.+)$',
                         caseSensitive: false,
@@ -242,6 +316,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       final m1 = forward.firstMatch(input);
                       final m2 = backward.firstMatch(input);
 
+                      // seperate
                       if (m1 != null) {
                         amount.add(m1.group(1)!);
                         ingredients.add(m1.group(2)!);
@@ -254,6 +329,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       }
                     }
 
+                    // to avoid empty inputs
                     final filledIngredients = ingredients
                         .where((c) => c.isNotEmpty)
                         .toList();
@@ -261,6 +337,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                         .where((c) => c.text.trim().isNotEmpty)
                         .toList();
 
+                    // to avoid uncomplete entries
                     setState(() {
                       _nameError = _nameController.text.isEmpty
                           ? 'Name ist erforderlich'
@@ -275,9 +352,11 @@ class _CreateRecipeState extends State<CreateRecipe> {
 
                     if (_nameError != null ||
                         _ingredientErrors != null ||
-                        _stepErrors != null)
+                        _stepErrors != null) {
                       return;
+                    }
 
+                    // save with recipe service
                     await RecipeService().save(
                       Recipe(
                         id: id,
@@ -288,9 +367,11 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       ),
                     );
 
+                    // return to my recipes page
                     if (!context.mounted) return;
                     Navigator.pop(context);
                   },
+
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16.0),
                     foregroundColor: colorScheme.onPrimary,
@@ -298,6 +379,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
                       borderRadius: BorderRadius.circular(12.0),
                     ),
                   ),
+
                   child: const Text(
                     'Rezept hinzufügen',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
@@ -308,6 +390,7 @@ class _CreateRecipeState extends State<CreateRecipe> {
           ],
         ),
       ),
+
       bottomNavigationBar: NavigationBar(
         destinations: [
           NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
