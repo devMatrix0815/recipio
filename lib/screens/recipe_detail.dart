@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+// model + service
 import '../models/recipe.dart';
 import '../services/recipe_service.dart';
 
@@ -20,28 +22,37 @@ class RecipeDetail extends StatelessWidget {
             context,
           ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
         ),
+
         actions: [
+          // delete button
           IconButton(
             icon: const Icon(Icons.delete_forever, color: Colors.redAccent),
             tooltip: "Rezept löschen",
             onPressed: () async {
+              // use recipe service
               await RecipeService().delete(recipe.id);
+
+              // go back to my recipes
               if (!context.mounted) return;
               Navigator.pop(context);
             },
           ),
         ],
       ),
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
+            // ingridients section
             Text(
               'Zutaten',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
+
+            // space + ingridients
             const SizedBox(height: 8.0),
             ...recipe.ingredients.asMap().entries.map(
               (entry) => Padding(
@@ -49,6 +60,7 @@ class RecipeDetail extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    // [space] - Circle - [Space] - Ingridient
                     const SizedBox(width: 24.0),
                     const Icon(Icons.circle, size: 8),
                     const SizedBox(width: 16.0),
@@ -61,13 +73,19 @@ class RecipeDetail extends StatelessWidget {
                 ),
               ),
             ),
+
+            // big space
             const SizedBox(height: 32.0),
+
+            // steps section
             Text(
               'Zubereitung',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
             ),
+
+            // space + steps
             const SizedBox(height: 8.0),
             ...recipe.steps.asMap().entries.map(
               (entry) => Padding(
@@ -75,6 +93,7 @@ class RecipeDetail extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // [space] - number - step
                     const SizedBox(width: 24.0),
                     SizedBox(
                       width: 24.0,
@@ -91,6 +110,7 @@ class RecipeDetail extends StatelessWidget {
           ],
         ),
       ),
+
       bottomNavigationBar: NavigationBar(
         destinations: [
           NavigationDestination(icon: Icon(Icons.book), label: 'Meine Rezepte'),
